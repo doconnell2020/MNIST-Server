@@ -13,6 +13,61 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "isort>=6.0.1",
     "pytest>=8.4.1",
     "ruff>=0.12.11",
 ]
+
+# Ruff configuration
+[tool.ruff]
+line-length = 99
+indent-width = 4
+target-version = "py311"
+extend-exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".venv",
+    "mlruns",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+]
+ignore = [
+    "E203",    # whitespace before ':'
+    "E501",    # line too long (handled by formatter)
+    "S101",    # use of assert (common in tests)
+    "T201",    # print statements (useful for debugging)
+    "COM812",  # trailing comma (handled by formatter)
+    "ISC001",  # single line implicit string concatenation
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "E402"]
+"tests/*.py" = ["S101", "F401", "F811", "ARG001"]
+"scripts/*.py" = ["T201", "S603", "S607"]
+"experiments/*.py" = ["T201", "S101"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mnist_training"]
+known-third-party = ["torch", "mlflow", "numpy", "sklearn"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = ["classmethod"]
