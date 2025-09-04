@@ -2,19 +2,27 @@ import numpy as np
 import torch
 from torch import nn, optim
 from torch.nn import functional as F
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, random_split
 
 from torchvision import datasets, transforms
-
-training_ds = datasets.MNIST(root="./data", train=True, download=True, transform=transforms.ToTensor())
-
-
-
 
 
 LEARNING_RATE = 0.1
 EPOCHS = 50
-BATCH_SIZE = 128
+BATCH_SIZE = 64
+
+
+training_ds = datasets.MNIST(
+    root="./data", train=True, download=True, transform=transforms.ToTensor()
+)
+training_ds, valid_ds = random_split(training_ds, [50000, 10000])
+test_ds = datasets.MNIST(
+    root="./data", train=False, download=True, transform=transforms.ToTensor()
+)
+
+train_loader = DataLoader(training_ds, batch_size=BATCH_SIZE, shuffle=True)
+valid_loader = DataLoader(valid_ds, batch_size=BATCH_SIZE, shuffle=True)
+test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=True)
 
 
 class MNISTCNN(nn.Module):
@@ -37,6 +45,7 @@ def get_model():
     model = MNISTCNN()
     return model, optim.SGD(model.parameters(), lr=LEARNING_RATE)
 
+
 def loss_batch(model, loss_func, xb, yb, opt=None):
     loss = loss_func(model(xb), yb)
 
@@ -47,7 +56,8 @@ def loss_batch(model, loss_func, xb, yb, opt=None):
 
     return loss.item(), len(xb)
 
-def fit(epochs=EPOCHS, model, loss_func, opt, train_dl, valid_dl):
+
+def fit(model, loss_func, opt, train_dl, valid_dl, epochs=EPOCHS):
     for epoch in range(epochs):
         model.train()
         for xb, yb in train_dl:
@@ -61,4 +71,3 @@ def fit(epochs=EPOCHS, model, loss_func, opt, train_dl, valid_dl):
         val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
 
         print(epoch, val_loss)
-
