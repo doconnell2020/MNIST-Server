@@ -1,0 +1,25 @@
+version = 1
+revision = 2
+requires-python = ">=3.11"
+
+[manifest]
+members = [
+    "backend",
+    "mnist-server",
+    "model",
+]
+
+[[package]]
+name = "backend"
+version = "0.1.0"
+source = { virtual = "backend" }
+
+[[package]]
+name = "mnist-server"
+version = "0.1.0"
+source = { virtual = "." }
+
+[[package]]
+name = "model"
+version = "0.1.0"
+source = { virtual = "model" }
