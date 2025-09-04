@@ -1,27 +1,31 @@
-import numpy as np
+import argparse
+import platform
+from dataclasses import dataclass
+from datetime import datetime
+
+import mlflow
+import mlflow.pytorch
 import torch
 from torch import nn, optim
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
-import argparse
-from datetime import datetime
 
-# MLflow imports
-import mlflow
-import mlflow.pytorch
-from mlflow.tracking import MlflowClient
+PYTHON_VERSION = platform.python_version()
 
 
+# TODO: Abstract to config package with env detection
+@dataclass
 class Config:
     """Configuration class for hyperparameters and settings."""
+
     LEARNING_RATE = 0.1
     EPOCHS = 10
     BATCH_SIZE = 64
     PATIENCE = 3
     MIN_DELTA = 0.01
     DATA_DIR = "./data"
-    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # MLflow settings
     EXPERIMENT_NAME = "mnist-cnn-experiments"
@@ -56,7 +60,7 @@ class EarlyStopper:
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
-        self.best_loss = float('inf')
+        self.best_loss = float("inf")
         self.best_epoch = 0
 
     def __call__(self, val_loss, epoch):
@@ -88,7 +92,7 @@ class MLflowMNISTTrainer:
 
         # Tracking variables
         self.best_val_acc = 0.0
-        self.best_val_loss = float('inf')
+        self.best_val_loss = float("inf")
 
     def setup_mlflow(self):
         """Initialize MLflow tracking."""
@@ -100,7 +104,7 @@ class MLflowMNISTTrainer:
             if experiment is None:
                 experiment_id = mlflow.create_experiment(
                     self.config.EXPERIMENT_NAME,
-                    tags={"purpose": "MNIST CNN training experiments"}
+                    tags={"purpose": "MNIST CNN training experiments"},
                 )
             else:
                 experiment_id = experiment.experiment_id
@@ -114,24 +118,17 @@ class MLflowMNISTTrainer:
 
     def setup_data(self):
         """Setup data loaders for training, validation, and testing."""
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
+        transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
 
         # Load datasets
         full_train_ds = datasets.MNIST(
-            root=self.config.DATA_DIR,
-            train=True,
-            download=True,
-            transform=transform
+            root=self.config.DATA_DIR, train=True, download=True, transform=transform
         )
 
         test_ds = datasets.MNIST(
-            root=self.config.DATA_DIR,
-            train=False,
-            download=True,
-            transform=transform
+            root=self.config.DATA_DIR, train=False, download=True, transform=transform
         )
 
         # Split training into train/validation
@@ -142,21 +139,21 @@ class MLflowMNISTTrainer:
             train_ds,
             batch_size=self.config.BATCH_SIZE,
             shuffle=True,
-            pin_memory=True if self.device.type == 'cuda' else False
+            pin_memory=True if self.device.type == "cuda" else False,
         )
 
         self.val_loader = DataLoader(
             val_ds,
             batch_size=self.config.BATCH_SIZE,
             shuffle=False,
-            pin_memory=True if self.device.type == 'cuda' else False
+            pin_memory=True if self.device.type == "cuda" else False,
         )
 
         self.test_loader = DataLoader(
             test_ds,
             batch_size=self.config.BATCH_SIZE,
             shuffle=False,
-            pin_memory=True if self.device.type == 'cuda' else False
+            pin_memory=True if self.device.type == "cuda" else False,
         )
 
         # Log dataset info
@@ -175,7 +172,7 @@ class MLflowMNISTTrainer:
             self.model.parameters(),
             lr=self.config.LEARNING_RATE,
             momentum=0.9,
-            weight_decay=1e-4
+            weight_decay=1e-4,
         )
 
         # Log model parameters
@@ -213,7 +210,11 @@ class MLflowMNISTTrainer:
 
             # Log batch metrics every 100 batches
             if batch_idx % 100 == 0:
-                mlflow.log_metric("batch_loss", loss.item(), step=epoch * len(self.train_loader) + batch_idx)
+                mlflow.log_metric(
+                    "batch_loss",
+                    loss.item(),
+                    step=epoch * len(self.train_loader) + batch_idx,
+                )
 
         avg_loss = total_loss / len(self.train_loader)
         accuracy = 100.0 * correct / total_samples
@@ -251,8 +252,7 @@ class MLflowMNISTTrainer:
     def train(self):
         """Main training loop with MLflow tracking."""
         early_stopper = EarlyStopper(
-            patience=self.config.PATIENCE,
-            min_delta=self.config.MIN_DELTA
+            patience=self.config.PATIENCE, min_delta=self.config.MIN_DELTA
         )
 
         print(f"\nStarting training for {self.config.EPOCHS} epochs...")
@@ -263,16 +263,21 @@ class MLflowMNISTTrainer:
             train_loss, train_acc = self.train_epoch(epoch)
             val_loss, val_acc = self.validate(epoch)
 
-            print(f"{epoch + 1:5d} | {train_loss:10.4f} | {train_acc:9.2f}% | {val_loss:8.4f} | {val_acc:7.2f}%")
+            print(
+                f"{epoch + 1:5d} | {train_loss:10.4f} | {train_acc:9.2f}% | {val_loss:8.4f} | {val_acc:7.2f}%"
+            )
 
             # Log metrics to MLflow
-            mlflow.log_metrics({
-                "train_loss": train_loss,
-                "train_accuracy": train_acc,
-                "val_loss": val_loss,
-                "val_accuracy": val_acc,
-                "learning_rate": self.optimizer.param_groups[0]['lr']
-            }, step=epoch)
+            mlflow.log_metrics(
+                {
+                    "train_loss": train_loss,
+                    "train_accuracy": train_acc,
+                    "val_loss": val_loss,
+                    "val_accuracy": val_acc,
+                    "learning_rate": self.optimizer.param_groups[0]["lr"],
+                },
+                step=epoch,
+            )
 
             # Save model checkpoint if it's the best so far
             if val_acc > self.best_val_acc or val_loss < self.best_val_loss:
@@ -347,12 +352,12 @@ class MLflowMNISTTrainer:
 
         # Save model state
         checkpoint = {
-            'epoch': epoch + 1,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'val_loss': val_loss,
-            'val_accuracy': val_acc,
-            'config': self.config.__dict__
+            "epoch": epoch + 1,
+            "model_state_dict": self.model.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "val_loss": val_loss,
+            "val_accuracy": val_acc,
+            "config": self.config.__dict__,
         }
 
         # Save locally
@@ -360,40 +365,39 @@ class MLflowMNISTTrainer:
 
         # Log model to MLflow
         if is_best:
-            mlflow.pytorch.log_model(
-                self.model,
-                "best_model",
-                extra_files=[filename]
-            )
+            mlflow.pytorch.log_model(self.model, "best_model", extra_files=[filename])
             mlflow.log_artifact(filename, "checkpoints")
 
         print(f"Model saved: {filename}")
 
     def log_system_info(self):
         """Log system and environment information."""
-        import platform
-        import torch
 
-        mlflow.log_param("python_version", platform.python_version())
+        mlflow.log_param("python_version", PYTHON_VERSION)
         mlflow.log_param("pytorch_version", torch.__version__)
         mlflow.log_param("device", str(self.device))
         if torch.cuda.is_available():
             mlflow.log_param("gpu_name", torch.cuda.get_device_name(0))
-            mlflow.log_param("gpu_memory", f"{torch.cuda.get_device_properties(0).total_memory / 1e9:.1f}GB")
+            mlflow.log_param(
+                "gpu_memory",
+                f"{torch.cuda.get_device_properties(0).total_memory / 1e9:.1f}GB",
+            )
 
     def run_experiment(self, dropout_rate=0.5):
         """Run complete experiment with MLflow tracking."""
         with mlflow.start_run(run_name=self.run_name, experiment_id=self.experiment_id):
             # Log hyperparameters
-            mlflow.log_params({
-                "learning_rate": self.config.LEARNING_RATE,
-                "batch_size": self.config.BATCH_SIZE,
-                "epochs": self.config.EPOCHS,
-                "patience": self.config.PATIENCE,
-                "min_delta": self.config.MIN_DELTA,
-                "optimizer": "SGD",
-                "criterion": "CrossEntropyLoss"
-            })
+            mlflow.log_params(
+                {
+                    "learning_rate": self.config.LEARNING_RATE,
+                    "batch_size": self.config.BATCH_SIZE,
+                    "epochs": self.config.EPOCHS,
+                    "patience": self.config.PATIENCE,
+                    "min_delta": self.config.MIN_DELTA,
+                    "optimizer": "SGD",
+                    "criterion": "CrossEntropyLoss",
+                }
+            )
 
             # Log experiment tags
             for key, value in self.experiment_tags.items():
@@ -413,22 +417,30 @@ class MLflowMNISTTrainer:
 
             print(f"\nMLflow Run ID: {mlflow.active_run().info.run_id}")
             print(
-                f"MLflow Run URL: {mlflow.get_tracking_uri()}/#/experiments/{self.experiment_id}/runs/{mlflow.active_run().info.run_id}")
+                f"MLflow Run URL: {mlflow.get_tracking_uri()}/#/experiments/{self.experiment_id}/runs/{mlflow.active_run().info.run_id}"
+            )
 
             return test_accuracy
 
 
 def parse_args():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Train MNIST CNN with MLflow')
-    parser.add_argument('--lr', type=float, default=0.1, help='Learning rate')
-    parser.add_argument('--epochs', type=int, default=10, help='Number of epochs')
-    parser.add_argument('--batch-size', type=int, default=64, help='Batch size')
-    parser.add_argument('--patience', type=int, default=3, help='Early stopping patience')
-    parser.add_argument('--dropout', type=float, default=0.5, help='Dropout rate')
-    parser.add_argument('--run-name', type=str, help='Name for this MLflow run')
-    parser.add_argument('--experiment-name', type=str, default='mnist-cnn-experiments', help='MLflow experiment name')
-    parser.add_argument('--mlflow-uri', type=str, default='file:./mlruns', help='MLflow tracking URI')
+    parser = argparse.ArgumentParser(description="Train MNIST CNN with MLflow")
+    parser.add_argument("--lr", type=float, default=0.1, help="Learning rate")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs")
+    parser.add_argument("--batch-size", type=int, default=64, help="Batch size")
+    parser.add_argument("--patience", type=int, default=3, help="Early stopping patience")
+    parser.add_argument("--dropout", type=float, default=0.5, help="Dropout rate")
+    parser.add_argument("--run-name", type=str, help="Name for this MLflow run")
+    parser.add_argument(
+        "--experiment-name",
+        type=str,
+        default="mnist-cnn-experiments",
+        help="MLflow experiment name",
+    )
+    parser.add_argument(
+        "--mlflow-uri", type=str, default="file:./mlruns", help="MLflow tracking URI"
+    )
     return parser.parse_args()
 
 
@@ -458,14 +470,12 @@ def main():
         "model_type": "CNN",
         "dataset": "MNIST",
         "framework": "PyTorch",
-        "task": "classification"
+        "task": "classification",
     }
 
     # Initialize trainer
     trainer = MLflowMNISTTrainer(
-        config=config,
-        run_name=args.run_name,
-        experiment_tags=experiment_tags
+        config=config, run_name=args.run_name, experiment_tags=experiment_tags
     )
 
     # Run experiment
