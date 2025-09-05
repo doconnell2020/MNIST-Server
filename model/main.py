@@ -1,6 +1,4 @@
-import argparse
 import platform
-from dataclasses import dataclass
 from datetime import datetime
 
 import mlflow
@@ -11,25 +9,9 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 
+from config import config
+
 PYTHON_VERSION = platform.python_version()
-
-
-# TODO: Abstract to config package with env detection
-@dataclass
-class Config:
-    """Configuration class for hyperparameters and settings."""
-
-    LEARNING_RATE = 0.1
-    EPOCHS = 10
-    BATCH_SIZE = 64
-    PATIENCE = 3
-    MIN_DELTA = 0.01
-    DATA_DIR = "./data"
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # MLflow settings
-    EXPERIMENT_NAME = "mnist-cnn-experiments"
-    MLFLOW_TRACKING_URI = "file:./mlruns"  # Can be changed to remote server
 
 
 class MNISTCNN(nn.Module):
@@ -78,8 +60,8 @@ class EarlyStopper:
 class MLflowMNISTTrainer:
     """MNIST trainer with MLflow integration."""
 
-    def __init__(self, config=None, run_name=None, experiment_tags=None):
-        self.config = config or Config()
+    def __init__(self, config=config, run_name=None, experiment_tags=None):
+        self.config = config
         self.device = self.config.DEVICE
         self.model = None
         self.optimizer = None
@@ -423,39 +405,8 @@ class MLflowMNISTTrainer:
             return test_accuracy
 
 
-def parse_args():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Train MNIST CNN with MLflow")
-    parser.add_argument("--lr", type=float, default=0.1, help="Learning rate")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs")
-    parser.add_argument("--batch-size", type=int, default=64, help="Batch size")
-    parser.add_argument("--patience", type=int, default=3, help="Early stopping patience")
-    parser.add_argument("--dropout", type=float, default=0.5, help="Dropout rate")
-    parser.add_argument("--run-name", type=str, help="Name for this MLflow run")
-    parser.add_argument(
-        "--experiment-name",
-        type=str,
-        default="mnist-cnn-experiments",
-        help="MLflow experiment name",
-    )
-    parser.add_argument(
-        "--mlflow-uri", type=str, default="file:./mlruns", help="MLflow tracking URI"
-    )
-    return parser.parse_args()
-
-
 def main():
     """Main execution function."""
-    args = parse_args()
-
-    # Update config with command line arguments
-    config = Config()
-    config.LEARNING_RATE = args.lr
-    config.EPOCHS = args.epochs
-    config.BATCH_SIZE = args.batch_size
-    config.PATIENCE = args.patience
-    config.EXPERIMENT_NAME = args.experiment_name
-    config.MLFLOW_TRACKING_URI = args.mlflow_uri
 
     print("MNIST CNN Training with MLflow")
     print("=" * 50)
@@ -463,7 +414,6 @@ def main():
     print(f"Learning Rate: {config.LEARNING_RATE}")
     print(f"Batch Size: {config.BATCH_SIZE}")
     print(f"Epochs: {config.EPOCHS}")
-    print(f"Dropout: {args.dropout}")
 
     # Setup experiment tags
     experiment_tags = {
@@ -474,12 +424,10 @@ def main():
     }
 
     # Initialize trainer
-    trainer = MLflowMNISTTrainer(
-        config=config, run_name=args.run_name, experiment_tags=experiment_tags
-    )
+    trainer = MLflowMNISTTrainer(config=config, experiment_tags=experiment_tags)
 
     # Run experiment
-    accuracy = trainer.run_experiment(dropout_rate=args.dropout)
+    accuracy = trainer.run_experiment()
 
     print(f"\nFinal Test Accuracy: {accuracy:.2f}%")
 
