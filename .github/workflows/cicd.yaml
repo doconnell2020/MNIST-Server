@@ -16,9 +16,13 @@ jobs:
    unit-test:
      name: Unit Test
      runs-on: ubuntu-latest
+     strategy:
+       matrix:
+         package: [model, backend]
      steps:
        - uses: actions/checkout@v5
        - name: Setup Python environment
          uses: ./.github/actions/setup-python-env
-       - name: Run tests
+       - name: Test ${{ matrix.package }}
+         working-directory: ${{ matrix.package }}
          run: uv run pytest
