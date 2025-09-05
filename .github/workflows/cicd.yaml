@@ -4,40 +4,40 @@ on: [push]
 
 jobs:
   # Option 1: Combined job (faster, less overhead)
-  setup-and-test:
-    name: Setup and Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Setup Python environment
-        uses: ./.github/actions/setup-python-env
-
-      - name: Run static analysis
-        run: uv run ruff check
-
-      - name: Run unit tests
-        run: uv run pytest model
+#  setup-and-test:
+#    name: Setup and Test
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v5
+#
+#      - name: Setup Python environment
+#        uses: ./.github/actions/setup-python-env
+#
+#      - name: Run static analysis
+#        run: uv run ruff check
+#
+#      - name: Run unit tests
+#        run: uv run pytest model
 
   # Option 2: Parallel jobs with shared setup action
   # Uncomment below and comment above if you prefer parallel execution
 
-  # static-analysis:
-  #   name: Static Analysis
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - name: Setup Python environment
-  #       uses: ./.github/actions/setup-python-env
-  #     - name: Ruff Check
-  #       run: uv run ruff check
+   static-analysis:
+     name: Static Analysis
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v5
+       - name: Setup Python environment
+         uses: ./.github/actions/setup-python-env
+       - name: Ruff Check
+         run: uv run ruff check
 
-  # unit-test:
-  #   name: Unit Test
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - name: Setup Python environment
-  #       uses: ./.github/actions/setup-python-env
-  #     - name: Run tests
-  #       run: uv run pytest model
+   unit-test:
+     name: Unit Test
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v5
+       - name: Setup Python environment
+         uses: ./.github/actions/setup-python-env
+       - name: Run tests
+         run: uv run pytest model
