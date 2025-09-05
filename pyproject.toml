@@ -15,6 +15,7 @@ members = [
 [dependency-groups]
 dev = [
     "isort>=6.0.1",
+    "pre-commit>=4.3.0",
     "pytest>=8.4.1",
     "ruff>=0.12.11",
 ]
@@ -72,4 +73,3 @@ max-complexity = 10
 
 [tool.ruff.lint.pep8-naming]
 classmethod-decorators = ["classmethod"]
-

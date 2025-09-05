@@ -3,25 +3,6 @@ name: MNIST Server Pipeline
 on: [push]
 
 jobs:
-  # Option 1: Combined job (faster, less overhead)
-#  setup-and-test:
-#    name: Setup and Test
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v5
-#
-#      - name: Setup Python environment
-#        uses: ./.github/actions/setup-python-env
-#
-#      - name: Run static analysis
-#        run: uv run ruff check
-#
-#      - name: Run unit tests
-#        run: uv run pytest model
-
-  # Option 2: Parallel jobs with shared setup action
-  # Uncomment below and comment above if you prefer parallel execution
-
    static-analysis:
      name: Static Analysis
      runs-on: ubuntu-latest
@@ -41,3 +22,18 @@ jobs:
          uses: ./.github/actions/setup-python-env
        - name: Run tests
          run: uv run pytest model
+   build:
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v4
+       - name: Install Python
+         uses: actions/setup-python@v5
+         with:
+           python-version: "3.11"
+       - name: Install dependencies
+         run: |
+           python -m pip install --upgrade pip
+           pip install ruff
+       # Update output format to enable automatic inline annotations.
+       - name: Run Ruff
+         run: ruff check --output-format=github .
