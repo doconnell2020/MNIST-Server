@@ -19,3 +19,18 @@ jobs:
 
       - name: Ruff Check
         run: uv run ruff check
+
+  unit-test:
+    name: Unit Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install uv
+          uses: astral-sh/setup-uv@v6
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run tests
+        # For example, using `pytest`
+        run: uv run pytest model
+
