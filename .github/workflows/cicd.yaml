@@ -18,7 +18,15 @@ jobs:
      runs-on: ubuntu-latest
      steps:
        - uses: actions/checkout@v5
+       - name: Model Test
+         run: cd model
        - name: Setup Python environment
          uses: ./.github/actions/setup-python-env
        - name: Run tests
-         run: uv run pytest model
+         run: uv run pytest
+       - name: Backend Test
+         run: cd ../backend
+       - name: Setup Python environment
+         uses: ./.github/actions/setup-python-env
+       - name: Run tests
+         run: uv run pytest

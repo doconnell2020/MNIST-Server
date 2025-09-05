@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from ...config.base import Config
+from config.base import Config
 
 
 @pytest.fixture
